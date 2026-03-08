@@ -243,6 +243,15 @@
     }
     .result-animate { animation: resultIn 0.35s ease both; }
 
+    /* ── Mode description ── */
+    .mode-desc {
+      font-size: 12px; color: var(--muted); line-height: 1.6;
+      padding: 8px 12px; border-radius: 8px;
+      background: var(--accent-bg); border: 1px solid rgba(88,166,255,0.15);
+      margin-top: 2px;
+      transition: opacity 0.2s ease;
+    }
+
     /* ── Numpad ── */
     input[type="number"] { cursor: pointer; caret-color: transparent; user-select: none; }
 
@@ -331,9 +340,10 @@
         <div class="field">
           <label for="mode">評価モード</label>
           <select id="mode">
-            <option value="count">支払い後の枚数を最小</option>
             <option value="coins">小銭を優先的に減らす</option>
+            <option value="count">支払い後の枚数を最小</option>
           </select>
+          <div id="modeDesc" class="mode-desc"></div>
         </div>
       </div>
 
@@ -942,6 +952,21 @@
     /* ─────────────────────────────────────────
        イベント
     ───────────────────────────────────────── */
+    /* ── モード説明文 ── */
+    const MODE_DESC = {
+      coins: '🪙 手持ちの小銭をなるべく多く使い、財布の硬貨枚数を減らします。じゃらじゃらした小銭を解消したいときに。',
+      count: '👛 支払い後に財布に残る枚数（紙幣＋硬貨）が最も少なくなる組み合わせを選びます。財布全体をスッキリさせたいときに。'
+    };
+
+    function updateModeDesc() {
+      const mode = $('mode')?.value ?? 'coins';
+      const desc = $('modeDesc');
+      if (desc) desc.textContent = MODE_DESC[mode] ?? '';
+    }
+
+    $('mode').addEventListener('change', updateModeDesc);
+    updateModeDesc(); // 初期表示
+
     $('calcBtn').addEventListener('click', () => {
       clearStatus();
       const price  = readIntById('price');
