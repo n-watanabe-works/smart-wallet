@@ -653,15 +653,20 @@
        スコアリング・比較
     ───────────────────────────────────────── */
     function judgeCandidate(c, mode) {
-      const ac = coinCount(c.afterWallet);
-      const ab = billCount(c.afterWallet);
+      const afterW  = c.afterWallet;
+      const changeC = c.changeCombo || {};
+      const ac  = coinCount(afterW);
+      const ab  = billCount(afterW);
       const acp = couponPenalty(c.afterCoupons);
       const atotal = ac + ab + acp;
       const paid   = sumVals(c.paidCombo) + (c.usedCounts || c.usedCouponCounts || []).reduce((a, b) => a + (b || 0), 0);
+      // お釣りの総枚数をペナルティとして先頭に置く
+      // → お釣りが少ない（出した額面がそのまま帰ってこない）支払い方を優先
+      const changeCnt = Object.values(changeC).reduce((a, b) => a + (Number(b)||0), 0);
 
       return mode === 'coins'
-        ? [coinPenalty(c.afterWallet), ac, c.changeAmount, atotal, c.paidAmount, totalAmount(c.afterWallet), paid]
-        : [ac, coinPenalty(c.afterWallet), c.changeAmount, atotal, c.paidAmount, totalAmount(c.afterWallet), paid];
+        ? [changeCnt, coinPenalty(afterW), ac, atotal, c.paidAmount, totalAmount(afterW), paid]
+        : [changeCnt, ac, coinPenalty(afterW), atotal, c.paidAmount, totalAmount(afterW), paid];
     }
 
     function couponPenalty(cs) { return totalCouponCount(cs); }
