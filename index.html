@@ -564,22 +564,33 @@
        ※ clone をコンボのコピー時のみに限定し、
          不要な Map エントリ再生成を排除
     ───────────────────────────────────────── */
-    function betterCombo(a, b, preferHigherBills = false) {
+    // countモード用: 使用枚数最小・高額紙幣優先
+    function betterComboCount(a, b) {
       if (!a) return b;
       const ua = sumVals(a), ub = sumVals(b);
       if (ub !== ua) return ub < ua ? b : a;
-      if (preferHigherBills) {
-        const ha = BILL_DENOMS.reduce((s, d) => s + (a[d] || 0), 0);
-        const hb = BILL_DENOMS.reduce((s, d) => s + (b[d] || 0), 0);
-        if (hb !== ha) return hb < ha ? b : a;
-      }
+      const ha = BILL_DENOMS.reduce((s, d) => s + (a[d] || 0), 0);
+      const hb = BILL_DENOMS.reduce((s, d) => s + (b[d] || 0), 0);
+      if (hb !== ha) return hb < ha ? b : a;
       return a;
     }
 
-    function enumerateReachable(available) {
+    // coinsモード用: 同金額なら「coinPenaltyが高い（小銭を多く使う）combo」を優先
+    function betterComboCoins(a, b) {
+      if (!a) return b;
+      const pa = coinPenalty(a), pb = coinPenalty(b);
+      if (pb !== pa) return pb > pa ? b : a;
+      const ua = sumVals(a), ub = sumVals(b);
+      if (ub !== ua) return ub < ua ? b : a;
+      return a;
+    }
+
+    function enumerateReachable(available, mode) {
       const sa = toObj(available);
       // dp: amount → combo (各額面の枚数)
       const dp = new Map([[0, Object.fromEntries(DENOMS.map(d => [d, 0]))]]);
+      // coinsモードは小銭を優先的に使うcomboを選ぶ
+      const better = mode === 'coins' ? betterComboCoins : betterComboCount;
 
       for (const d of DENOMS) {
         const cnt = sa[d] || 0;
@@ -591,7 +602,7 @@
             const ns = sum + d * k;
             const nc = clone(combo);
             nc[d] += k;
-            dp.set(ns, betterCombo(dp.get(ns), nc, true));
+            dp.set(ns, better(dp.get(ns), nc));
           }
         }
       }
@@ -688,7 +699,7 @@
       const sc    = toArr(coupons);
       const p     = Math.max(0, Math.floor(Number(price) || 0));
       const md    = mode === 'coins' ? 'coins' : 'count';
-      const moneyDp     = enumerateReachable(sw);
+      const moneyDp     = enumerateReachable(sw, md);
       const couponPlans = enumerateCouponPlans(sc, p);
 
       let best = null, bestScore = null;
